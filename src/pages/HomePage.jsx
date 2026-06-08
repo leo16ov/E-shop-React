@@ -1,22 +1,29 @@
 import ProductCard from "../components/ProductCard";
-import { PRODUCTS } from "../data/data";
 import { CATEGORIES } from "../data/data";
 import Hero from "../components/Hero";
 
-
-export default function HomePage({ onAddToCart, search, activeCategory, setPage, setProductId }) {
-  const filtered = PRODUCTS.filter(p => {
+export default function HomePage({
+  products = [],
+  loading,
+  loadError,
+  onAddToCart,
+  search,
+  activeCategory,
+  setPage,
+  setProductId,
+}) {
+  const filtered = products.filter(p => {
     const matchCat    = activeCategory === "todos" || p.category === activeCategory;
     const matchSearch = p.name.toLowerCase().includes(search.toLowerCase())
                      || p.category.toLowerCase().includes(search.toLowerCase());
     return matchCat && matchSearch;
   });
- 
+
   const handleNavigate = (id) => {
     setProductId(id);
     setPage("product");
   };
- 
+
   return (
     <main>
       {!search && activeCategory === "todos" && <Hero setPage={setPage} />}
@@ -31,8 +38,12 @@ export default function HomePage({ onAddToCart, search, activeCategory, setPage,
           </h2>
           <p className="section-count">{filtered.length} artículos</p>
         </div>
- 
-        {filtered.length === 0 ? (
+
+        {loading ? (
+          <div className="no-results"><p>Cargando productos…</p></div>
+        ) : loadError ? (
+          <div className="no-results"><p>No se pudieron cargar los productos: {loadError}</p></div>
+        ) : filtered.length === 0 ? (
           <div className="no-results"><p>No se encontraron productos.</p></div>
         ) : (
           <div className="products-grid">
@@ -50,4 +61,3 @@ export default function HomePage({ onAddToCart, search, activeCategory, setPage,
     </main>
   );
 }
- 

@@ -1,24 +1,77 @@
-import { IconBag } from "../components/icons";
+import { useEffect, useState } from "react";
+import { getOrders, isLoggedIn } from "../lib/api";
 
-export default function OrdersPage({ user, setPage }) {
-  if (!user) return (
-    <main className="auth-page">
-      <div className="auth-card" style={{ textAlign: "center" }}>
-        <IconBag size={48} />
-        <h2 style={{ margin: "1rem 0 0.5rem" }}>Mis Compras</h2>
-        <p style={{ color: "#888", marginBottom: "1.5rem" }}>Iniciá sesión para ver tus compras.</p>
-        <button className="btn-auth" onClick={() => setPage("login")}>Iniciar sesión</button>
-      </div>
-    </main>
-  );
+// Etiquetas legibles para los estados del ENUM estado_orden.
+const ESTADOS = {
+  pendiente:      "Pendiente",
+  pagada:         "Pagada",
+  en_preparacion: "En preparación",
+  enviada:        "Enviada",
+  entregada:      "Entregada",
+  cancelada:      "Cancelada",
+  reembolsada:    "Reembolsada",
+};
+
+export default function OrdersPage({ setPage }) {
+  const [orders,  setOrders]  = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error,   setError]   = useState("");
+
+  useEffect(() => {
+    if (!isLoggedIn()) {
+      setLoading(false);
+      setError("Iniciá sesión para ver tus compras.");
+      return;
+    }
+    getOrders()
+      .then(data => setOrders(data || []))
+      .catch(e => setError(e.message))
+      .finally(() => setLoading(false));
+  }, []);
+
   return (
-    <main className="content-page">
-      <h2 className="page-title">Mis Compras</h2>
-      <div className="empty-page">
-        <IconBag size={64} />
-        <p>Todavía no realizaste ninguna compra.</p>
-        <button className="btn-primary" onClick={() => setPage("home")}>Ir a la tienda</button>
-      </div>
+    <main className="orders-page">
+      <h1 className="section-title">Mis compras</h1>
+
+      {loading ? (
+        <p>Cargando…</p>
+      ) : error ? (
+        <div className="no-results">
+          <p>{error}</p>
+          {!isLoggedIn() && (
+            <button className="btn btn-primary" onClick={() => setPage("login")}>
+              Iniciar sesión
+            </button>
+          )}
+        </div>
+      ) : orders.length === 0 ? (
+        <div className="no-results"><p>Todavía no tenés compras.</p></div>
+      ) : (
+        <div className="orders-list">
+          {orders.map(o => (
+            <div className="order-card" key={o.id}>
+              <div className="order-head">
+                <span className="order-id">Orden #{o.id}</span>
+                <span className={`order-status status-${o.estado}`}>
+                  {ESTADOS[o.estado] || o.estado}
+                </span>
+              </div>
+              <div className="order-items">
+                {(o.items || []).map(it => (
+                  <div className="order-item" key={it.id}>
+                    <span>{it.nombre_producto} ×{it.cantidad}</span>
+                    <span>${it.precio_unitario * it.cantidad}</span>
+                  </div>
+                ))}
+              </div>
+              <div className="order-total">
+                <strong>Total</strong>
+                <strong>${o.total}</strong>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
     </main>
   );
 }

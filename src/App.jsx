@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Header       from "./components/Header";
 import Footer       from "./components/Footer";
 import HomePage     from "./pages/HomePage";
@@ -8,6 +8,7 @@ import OrdersPage   from "./pages/OrdersPage";
 import ContactPage  from "./pages/ContactPage";
 import CheckoutPage from "./pages/CheckoutPage";
 import ProductPage  from "./pages/ProductPage";
+import { getProducts, getProfile, getToken, setToken, clearToken } from "./lib/api";
 
 export default function App() {
   const [page,           setPage]           = useState("home");
@@ -16,6 +17,37 @@ export default function App() {
   const [user,           setUser]           = useState(null);
   const [search,         setSearch]         = useState("");
   const [activeCategory, setActiveCategory] = useState("todos");
+
+  // Productos traídos del backend
+  const [products,  setProducts]  = useState([]);
+  const [loading,   setLoading]   = useState(true);
+  const [loadError, setLoadError] = useState("");
+
+  // ── Carga inicial de productos ──────────────────────────────────────────────
+  useEffect(() => {
+    getProducts()
+      .then(setProducts)
+      .catch(e => setLoadError(e.message))
+      .finally(() => setLoading(false));
+  }, []);
+
+  // ── Sesión: retorno de Google (?token=) o token ya guardado ─────────────────
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const tokenFromOAuth = params.get("token");
+
+    if (tokenFromOAuth) {
+      setToken(tokenFromOAuth);
+      // Limpia la URL para no dejar el token a la vista
+      window.history.replaceState({}, "", window.location.pathname);
+    }
+
+    if (getToken()) {
+      getProfile()
+        .then(p => setUser({ name: p.email?.split("@")[0] || "Usuario", email: p.email }))
+        .catch(() => clearToken());
+    }
+  }, []);
 
   // ── Cart helpers ────────────────────────────────────────────────────────────
   const addToCart = (p) => {
@@ -37,6 +69,7 @@ export default function App() {
   };
 
   const handleOrderComplete = () => setCart([]);
+  const handleLogout = () => { clearToken(); setUser(null); };
 
   // ── Page routing ────────────────────────────────────────────────────────────
   const renderPage = () => {
@@ -44,6 +77,9 @@ export default function App() {
       case "home":
         return (
           <HomePage
+            products={products}
+            loading={loading}
+            loadError={loadError}
             onAddToCart={addToCart}
             search={search}
             activeCategory={activeCategory}
@@ -54,6 +90,7 @@ export default function App() {
       case "product":
         return (
           <ProductPage
+            products={products}
             productId={productId}
             onAddToCart={addToCart}
             setPage={setPage}
@@ -71,6 +108,7 @@ export default function App() {
         return (
           <CheckoutPage
             cart={cart}
+            user={user}
             setPage={setPage}
             onOrderComplete={handleOrderComplete}
           />
@@ -78,6 +116,9 @@ export default function App() {
       default:
         return (
           <HomePage
+            products={products}
+            loading={loading}
+            loadError={loadError}
             onAddToCart={addToCart}
             search={search}
             activeCategory={activeCategory}
@@ -96,7 +137,7 @@ export default function App() {
         cart={cart}
         onUpdateQty={updateQty}
         user={user}
-        onLogout={() => setUser(null)}
+        onLogout={handleLogout}
         search={search}
         setSearch={setSearch}
         activeCategory={activeCategory}
