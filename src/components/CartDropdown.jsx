@@ -1,13 +1,15 @@
 import { IconClose, IconPlus, IconMinus } from "./icons";
 
-export default function CartDropdown({ cart, onUpdateQty, onClose }) {
+export default function CartDropdown({ cart, onUpdateQty, onClose, onCheckout }) {
   const subtotal = cart.reduce((s, i) => s + i.price * i.qty, 0);
+
   return (
     <div className="cart-dropdown">
       <div className="cart-drop-header">
         <span className="cart-drop-title">Mi Carrito</span>
         <button className="btn-icon-plain" onClick={onClose}><IconClose /></button>
       </div>
+
       {cart.length === 0 ? (
         <p className="cart-empty">Tu carrito está vacío</p>
       ) : (
@@ -33,7 +35,9 @@ export default function CartDropdown({ cart, onUpdateQty, onClose }) {
               <span>Subtotal</span>
               <span className="subtotal-price">${subtotal.toFixed(2)}</span>
             </div>
-            <button className="btn-checkout">Ir al pago →</button>
+            <button className="btn-checkout" onClick={onCheckout}>
+              Ir al pago →
+            </button>
           </div>
         </>
       )}
